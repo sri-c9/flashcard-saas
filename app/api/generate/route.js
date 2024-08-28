@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { OpenAI } from "openai";
 
 const systemPrompt = `
 You are a flashcard creator. Your goal is to help users learn and retain information effectively by generating concise, focused flashcards based on the content provided to you. 
@@ -13,7 +13,7 @@ When creating flashcards:
 6.) Consider Different Learning Styles: Include visual aids like diagrams or charts if relevant, and offer mnemonic devices or memory aids where applicable.
 7.) Encourage Active Recall: Design questions that prompt users to actively recall information rather than just recognize it.
 8.) Review and Refine: Iterate on the flashcards based on user feedback or additional material to ensure they are as effective as possible.
-
+9) Only generates 10 flashcard.
 Remember the goal is to facilitate effective learning and retention of information through these flashcards.
 
 Return in the following JSON format:
@@ -28,10 +28,13 @@ Return in the following JSON format:
 `;
 
 export async function POST(req) {
-  const openai = new OpenAI(req);
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
   const data = await req.text();
+  console.log("DATA:", data);
 
-  const completion = await openai.chat.completion.create({
+  const completion = await openai.chat.completions.create({
     messages: [
       {
         role: "system",
@@ -48,7 +51,14 @@ export async function POST(req) {
     },
   });
 
-  const flashcards = JSON.parse(completion.choices[0].message.content);
-
-  return NextResponse(flashcards.flashcards);
+  try {
+    const flashcards = JSON.parse(completion.choices[0].message.content);
+    return NextResponse.json(flashcards); // Properly return JSON response
+  } catch (error) {
+    console.error("Error parsing JSON:", error);
+    return NextResponse.json(
+      { error: "Failed to parse response as JSON" },
+      { status: 500 }
+    );
+  }
 }

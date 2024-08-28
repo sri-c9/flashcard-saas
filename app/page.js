@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import getStripe from "@/utils/get-stripe";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
@@ -13,6 +15,37 @@ import {
 import Head from "next/head";
 
 export default function Home() {
+  const handleSubmit = async () => {
+    try {
+      const checkoutSession = await fetch("/api/checkout_sessions", {
+        method: "POST",
+      });
+
+      const checkoutSessionJson = await checkoutSession.json();
+
+      if (checkoutSession.status === 500) {
+        console.error(checkoutSessionJson.error);
+        return;
+      }
+
+      const stripe = await getStripe();
+      if (!stripe) {
+        console.error("Stripe instance not available");
+        return;
+      }
+
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: checkoutSessionJson.id,
+      });
+
+      if (error) {
+        console.warn(error.message);
+      }
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+    }
+  };
+
   return (
     <Container maxWidth="lg">
       <Head>
@@ -32,8 +65,18 @@ export default function Home() {
             Flashcard SaaS
           </Typography>
           <SignedOut>
-            <Button color="inherit" href="/sign-in">Login</Button>
-            <Button color="inherit" href="/sign-up">Sign Up</Button>
+            <Button
+              color="inherit"
+              href="/sign-in"
+            >
+              Login
+            </Button>
+            <Button
+              color="inherit"
+              href="/sign-up"
+            >
+              Sign Up
+            </Button>
           </SignedOut>
           <SignedIn>
             <UserButton />
@@ -85,7 +128,6 @@ export default function Home() {
               Easy Text Input
             </Typography>
             <Typography>
-              {" "}
               Simply input your text and let us do the rest!
             </Typography>
           </Grid>
@@ -101,7 +143,6 @@ export default function Home() {
               Smart Flashcards
             </Typography>
             <Typography>
-              {" "}
               Our AI Intelligently breaks down your text into concise
               flashcards; perfect for studying!
             </Typography>
@@ -118,7 +159,6 @@ export default function Home() {
               Accessible Anywhere
             </Typography>
             <Typography>
-              {" "}
               Access our flashcards from any device at any time!
             </Typography>
           </Grid>
@@ -128,7 +168,6 @@ export default function Home() {
         my={6}
         textAlign={"center"}
       >
-        {" "}
         <Typography
           variant="h4"
           gutterBottom
@@ -165,13 +204,12 @@ export default function Home() {
                 $5/month
               </Typography>
               <Typography>
-                {" "}
                 Access to basic flashcard features and limited storage
               </Typography>
               <Button
                 variant="contained"
                 color="primary"
-                sx={{ marginTop: "2" }}
+                sx={{ mt: 2 }}
               >
                 Choose basic
               </Button>
@@ -203,13 +241,13 @@ export default function Home() {
                 $10/month
               </Typography>
               <Typography>
-                {" "}
                 Access to unlimited flashcards and storage with priority support
               </Typography>
               <Button
                 variant="contained"
                 color="primary"
-                sx={{ marginTop: "2" }}
+                sx={{ mt: 2 }}
+                onClick={handleSubmit}
               >
                 Choose pro
               </Button>
